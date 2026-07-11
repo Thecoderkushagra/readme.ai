@@ -1,0 +1,39 @@
+# EditorConfig helps developers define and maintain consistent coding styles between different editors and IDEs.
+# https://editorconfig.org
+
+root = true
+
+# Default settings for all files
+[*]
+indent_style = space
+indent_size = 2
+end_of_line = lf
+charset = utf-8
+trim_trailing_whitespace = true
+insert_final_newline = true
+
+# Java source files (standard is 4 spaces indentation)
+[*.java]
+indent_style = space
+indent_size = 4
+
+# XML configuration files (Maven pom.xml, etc.)
+[*.xml]
+indent_style = space
+indent_size = 4
+
+# Markdown files
+[*.md]
+trim_trailing_whitespace = false
+
+# Shell scripts
+[*.{sh,bash}]
+indent_style = space
+indent_size = 2
+end_of_line = lf
+
+# Windows batch files
+[*.{cmd,bat}]
+indent_style = space
+indent_size = 4
+end_of_line = crlf

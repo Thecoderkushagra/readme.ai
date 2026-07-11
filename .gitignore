@@ -1,0 +1,70 @@
+# IDEs / Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*.iml
+.metadata/
+.classpath
+.project
+.settings/
+nbproject/
+*.js.timestamp-*
+*.ts.timestamp-*
+
+# Java / Spring Boot / Maven
+target/
+*.jar
+*.war
+*.ear
+*.class
+.mvn/
+mvnw
+mvnw.cmd
+
+# Node / React / Vite
+node_modules/
+dist/
+build/
+npm-debug.log
+yarn-error.log
+.eslintcache
+
+# Environment variables
+.env
+.env.*
+!.env.example
+!.env.development.example
+!.env.production.example
+!.env.test.example
+
+# Docker
+docker-compose.override.yml
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Logs and databases
+*.log
+*.sqlite
+*.db
+
+# Build artifacts & Coverage reports
+coverage/
+.nyc_output/
+*.pid
+*.seed
+*.pid.lock
+
+# Temporary files
+tmp/
+temp/
+
+# LLM Instruction
+AGENTS.md

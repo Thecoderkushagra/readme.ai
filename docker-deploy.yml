@@ -1,0 +1,29 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: postgres-readme-local
+    environment:
+      POSTGRES_USER: ${DB_USERNAME:-readme_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-readme_password}
+      POSTGRES_DB: ${DB_NAME:-readme_db}
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data-readme-deploy:/var/lib/postgresql/data
+    networks:
+      - internal-net-readme-deploy
+
+#==============================
+# NETWORK CONFIGURATION
+#==============================
+networks:
+  internal-net-readme-deploy:
+    name: internal-net-readme-deploy
+    driver: bridge
+
+#==============================
+# VOLUME STORAGES
+#==============================
+volumes:
+  postgres-data-readme-deploy:
+    name: postgres-data-readme-deploy

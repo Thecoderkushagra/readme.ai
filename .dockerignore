@@ -1,0 +1,34 @@
+# Git & Metadata
+.git
+.gitignore
+.gitattributes
+.editorconfig
+*.md
+
+# IDEs
+.idea
+.vscode
+*.swp
+*.swo
+
+# Node
+node_modules
+npm-debug.log
+yarn-error.log
+dist
+build
+
+# Java / Maven
+target
+*.jar
+*.war
+*.ear
+*.class
+
+# Env
+.env
+.env.*
+.env.local
+
+# Docker
+docker-compose.*.yml
