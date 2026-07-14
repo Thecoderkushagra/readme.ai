@@ -1,19 +1,63 @@
-import logo from './assets/redmeiIcon.png';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Toaster } from 'react-hot-toast';
+import { LoginPage } from './pages/LoginPage';
+import { DashboardPage } from './pages/DashboardPage';
+import { useAuthStore } from './store/useAuthStore';
+
+// Protected Route Wrapper
+const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />;
+};
+
+// Public Route Wrapper (Redirects to dashboard if logged in)
+const PublicRoute = ({ children }: { children: React.ReactNode }) => {
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  return isAuthenticated ? <Navigate to="/dashboard" replace /> : <>{children}</>;
+};
 
 export const App = () => {
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center bg-background text-primary p-4">
-      <div className="glow-wrapper max-w-md w-full">
-        <div className="surface-card p-8 text-center flex flex-col items-center justify-center">
-          <img src={logo} alt="readme.ai Logo" className="w-16 h-16 mb-4 object-contain" />
-          <h1 className="text-3xl font-extrabold tracking-tight mb-2 text-gradient">
-            readme.ai
-          </h1>
-          <p className="text-secondary text-sm font-semibold tracking-wide uppercase">
-            Frontend client initialized
-          </p>
-        </div>
-      </div>
-    </div>
+    <BrowserRouter>
+      {/* Custom styled Toaster matching design system */}
+      <Toaster
+        position="top-right"
+        toastOptions={{
+          style: {
+            background: '#0F1011',
+            color: '#FFFFFF',
+            border: '1px solid #27272A',
+            fontFamily: 'Inter, sans-serif',
+          },
+        }}
+      />
+      <Routes>
+        {/* Public auth page */}
+        <Route
+          path="/login"
+          element={
+            <PublicRoute>
+              <LoginPage />
+            </PublicRoute>
+          }
+        />
+
+        {/* Protected Dashboard */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <DashboardPage />
+            </ProtectedRoute>
+          }
+        />
+
+        {/* Root path redirects to dashboard */}
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        
+        {/* Catch-all redirect to dashboard */}
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      </Routes>
+    </BrowserRouter>
   );
 };

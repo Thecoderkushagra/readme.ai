@@ -31,9 +31,20 @@ spring:
   ai:
     google:
       genai:
-        api-key: ${GEMINI_API_KEY}
+        api-key: ${GEMINI_API_KEY:dummy_key_for_startup_purposes}
+        project-id: ${GOOGLE_CLOUD_PROJECT:dummy_project_id_for_startup}
+        location: ${GOOGLE_CLOUD_LOCATION:us-central1}
+        embedding:
+          api-key: ${GEMINI_API_KEY:dummy_key_for_startup_purposes}
+          project-id: ${GOOGLE_CLOUD_PROJECT:dummy_project_id_for_startup}
+          location: ${GOOGLE_CLOUD_LOCATION:us-central1}
+        chat:
+          options:
+            model: gemini-3.5-flash
+            temperature: 0.5
+
     vectorstore:
       pgvector:
         dimension: 768
-        distance-type: COSINE
+        distance-type: COSINE_DISTANCE
         index-type: HNSW
