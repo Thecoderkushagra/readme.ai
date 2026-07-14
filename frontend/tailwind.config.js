@@ -7,21 +7,15 @@ export default {
   theme: {
     extend: {
       colors: {
-        background: "var(--background)",
-        foreground: "var(--foreground)",
-        primary: {
-          DEFAULT: "var(--primary)",
-          foreground: "var(--primary-foreground)",
-        },
-        secondary: {
-          DEFAULT: "var(--secondary)",
-          foreground: "var(--secondary-foreground)",
-        },
-        muted: {
-          DEFAULT: "var(--muted)",
-          foreground: "var(--muted-foreground)",
-        },
-        border: "var(--border)",
+        background: "var(--bg-base)",
+        surface: "var(--bg-surface)",
+        "surface-hover": "var(--bg-surface-hover)",
+        cyan: "var(--accent-cyan)",
+        green: "var(--accent-green)",
+        primary: "var(--text-primary)",
+        secondary: "var(--text-secondary)",
+        subtle: "var(--border-subtle)",
+        focus: "var(--border-focus)",
       },
     },
   },
