@@ -1,5 +1,39 @@
-spring:
+server:
   port: 8080
-  application:
-    name: ReadmeAI
 
+spring:
+  application:
+    name: readme-ai
+
+  threads:
+    virtual:
+      enabled: true
+
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USER}
+    password: ${DB_PASS}
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+
+  ai:
+    google:
+      genai:
+        api-key: ${GEMINI_API_KEY}
+    vectorstore:
+      pgvector:
+        dimension: 768
+        distance-type: COSINE
+        index-type: HNSW

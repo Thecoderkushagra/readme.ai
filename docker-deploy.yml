@@ -3,8 +3,8 @@ services:
     image: postgres:16-alpine
     container_name: postgres-readme-local
     environment:
-      POSTGRES_USER: ${DB_USERNAME:-readme_user}
-      POSTGRES_PASSWORD: ${DB_PASSWORD:-readme_password}
+      POSTGRES_USER: ${DB_USER:-readme_user}
+      POSTGRES_PASSWORD: ${DB_PASS:-readme_password}
       POSTGRES_DB: ${DB_NAME:-readme_db}
     ports:
       - "5432:5432"
