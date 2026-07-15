@@ -5,7 +5,7 @@ import com.thecoderkushagra.dto.request.ImportRepositoryRequest;
 import com.thecoderkushagra.dto.response.RepositoryResponse;
 import com.thecoderkushagra.dto.response.RepositoryStatusResponse;
 import com.thecoderkushagra.entity.Repository;
-import com.thecoderkushagra.entity.RepositoryStatus;
+import com.thecoderkushagra.enums.RepositoryStatus;
 import com.thecoderkushagra.entity.User;
 import com.thecoderkushagra.service.RepositoryService;
 import jakarta.validation.Valid;

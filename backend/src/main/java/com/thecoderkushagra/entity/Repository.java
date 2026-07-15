@@ -1,5 +1,6 @@
 package com.thecoderkushagra.entity;
 
+import com.thecoderkushagra.enums.RepositoryStatus;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

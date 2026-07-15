@@ -1,4 +1,4 @@
-package com.thecoderkushagra.entity;
+package com.thecoderkushagra.enums;
 
 public enum RepositoryStatus {
     CLONING,

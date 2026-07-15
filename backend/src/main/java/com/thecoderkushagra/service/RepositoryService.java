@@ -1,7 +1,7 @@
 package com.thecoderkushagra.service;
 
 import com.thecoderkushagra.entity.Repository;
-import com.thecoderkushagra.entity.RepositoryStatus;
+import com.thecoderkushagra.enums.RepositoryStatus;
 import com.thecoderkushagra.entity.User;
 import com.thecoderkushagra.exception.ResourceNotFoundException;
 import com.thecoderkushagra.repository.RepositoryRepository;

@@ -116,4 +116,15 @@ public class GlobalExceptionHandler {
                 
         return new ResponseEntity<>(response, HttpStatus.INTERNAL_SERVER_ERROR);
     }
+    @ExceptionHandler(GuardrailViolationException.class)
+    public ResponseEntity<ApiResponse<Void>> handleGuardrailViolationException(GuardrailViolationException ex) {
+        log.error("Guardrail violation: {}", ex.getMessage());
+        ApiResponse<Void> response = ApiResponse.<Void>builder()
+                .success(false)
+                .message(ex.getMessage())
+                .data(null)
+                .build();
+                
+        return new ResponseEntity<>(response, HttpStatus.BAD_REQUEST);
+    }
 }
