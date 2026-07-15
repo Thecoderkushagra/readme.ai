@@ -13,6 +13,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.nio.file.Path;
+import com.thecoderkushagra.dto.ParsedChunkDto;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.scheduling.annotation.Async;
 
 @Slf4j
 @Service
@@ -20,6 +25,13 @@ import java.util.UUID;
 public class RepositoryService {
 
     private final RepositoryRepository repositoryRepository;
+    private final GitService gitService;
+    private final AstParsingService astParsingService;
+    private final EmbeddingService embeddingService;
+
+    @Autowired
+    @Lazy
+    private RepositoryService self;
 
     @Transactional
     public Repository importRepository(String gitUrl, User user) {
@@ -32,7 +44,9 @@ public class RepositoryService {
             Repository repository = existing.get();
             log.info("Repository already exists globally (id: {}). Linking user: {}", repository.getId(), user.getEmail());
             repository.getUsers().add(user);
-            return repositoryRepository.save(repository);
+            Repository saved = repositoryRepository.save(repository);
+            self.processRepositoryAsync(saved);
+            return saved;
         }
 
         // New repository — create, link user, and set initial status
@@ -44,7 +58,9 @@ public class RepositoryService {
                 .build();
         repository.getUsers().add(user);
 
-        return repositoryRepository.save(repository);
+        Repository saved = repositoryRepository.save(repository);
+        self.processRepositoryAsync(saved);
+        return saved;
     }
 
     @Transactional(readOnly = true)
@@ -106,5 +122,29 @@ public class RepositoryService {
             return url.substring(lastIndex + 1);
         }
         return url;
+    }
+
+    @Async
+    public void processRepositoryAsync(Repository repository) {
+        Path tempDirectory = null;
+        try {
+            repository.setStatus(RepositoryStatus.PARSING);
+            repositoryRepository.save(repository);
+
+            tempDirectory = gitService.cloneRepository(repository.getGitUrl());
+            List<ParsedChunkDto> chunks = astParsingService.parseRepository(tempDirectory);
+            embeddingService.vectorizeAndSave(repository, chunks);
+
+            repository.setStatus(RepositoryStatus.COMPLETED);
+            repositoryRepository.save(repository);
+        } catch (Exception e) {
+            log.error("Failed to process repository {}: {}", repository.getGitUrl(), e.getMessage());
+            repository.setStatus(RepositoryStatus.FAILED);
+            repositoryRepository.save(repository);
+        } finally {
+            if (tempDirectory != null) {
+                gitService.cleanupDirectory(tempDirectory);
+            }
+        }
     }
 }
