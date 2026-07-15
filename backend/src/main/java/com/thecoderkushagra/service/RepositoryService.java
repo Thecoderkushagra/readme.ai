@@ -72,9 +72,14 @@ public class RepositoryService {
     @Transactional(readOnly = true)
     public RepositoryStatus getRepositoryStatus(UUID id, User user) {
         log.info("Fetching status for repository: {} for user: {}", id, user.getEmail());
-        Repository repository = repositoryRepository.findByIdAndUsersId(id, user.getId())
-                .orElseThrow(() -> new ResourceNotFoundException("Repository not found or unauthorized"));
+        Repository repository = getValidatedRepository(id, user);
         return repository.getStatus();
+    }
+
+    @Transactional(readOnly = true)
+    public Repository getValidatedRepository(UUID repositoryId, User user) {
+        return repositoryRepository.findByIdAndUsersId(repositoryId, user.getId())
+                .orElseThrow(() -> new ResourceNotFoundException("Repository not found or unauthorized"));
     }
 
     @Transactional

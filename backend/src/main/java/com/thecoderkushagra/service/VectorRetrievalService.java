@@ -19,33 +19,15 @@ public class VectorRetrievalService {
     private final EmbeddingModel embeddingModel;
     private final AstChunkRepository astChunkRepository;
 
-    public List<AstChunk> retrieveContext(UUID repositoryId, String userQuery) {
-        log.info("Generating embedding for user query");
-        
-        // Step 1: Generate query embedding
-        float[] vector = embeddingModel.embed(userQuery);
-        
-        // Step 2: Format vector to PostgreSQL string literal e.g. "[0.123, -0.456, ...]"
-        StringBuilder sb = new StringBuilder("[");
-        for (int i = 0; i < vector.length; i++) {
-            sb.append(vector[i]);
-            if (i < vector.length - 1) {
-                sb.append(",");
-            }
-        }
-        sb.append("]");
-        String vectorString = sb.toString();
-        
-        log.info("Query vector generated. Fetching top semantic matches from database.");
+    public List<AstChunk> retrieveContext(UUID repositoryId, String vectorString) {
+        log.info("Fetching top semantic matches from database for vector.");
 
-        // Step 3: Fetch top 15 matches using Cosine Distance
         List<AstChunk> initialMatches = astChunkRepository.findSimilarChunks(repositoryId, vectorString, 15);
-        
-        // Step 4: Strict Budget Guardrail (12,000 character limit)
+
         List<AstChunk> truncatedMatches = new ArrayList<>();
         int currentLength = 0;
         int budgetLimit = 12000;
-        
+
         for (AstChunk chunk : initialMatches) {
             int chunkLength = chunk.getContent() != null ? chunk.getContent().length() : 0;
             if (currentLength + chunkLength > budgetLimit) {
@@ -55,7 +37,7 @@ public class VectorRetrievalService {
             truncatedMatches.add(chunk);
             currentLength += chunkLength;
         }
-        
+
         log.info("Returning {} strictly budgeted semantic matches for retrieval", truncatedMatches.size());
         return truncatedMatches;
     }
