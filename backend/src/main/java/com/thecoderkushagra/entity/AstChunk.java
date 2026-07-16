@@ -1,6 +1,7 @@
 package com.thecoderkushagra.entity;
 
-import com.pgvector.PGvector;
+
+import org.hibernate.annotations.ColumnTransformer;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -42,6 +43,7 @@ public class AstChunk {
     @Column(columnDefinition = "TEXT", nullable = false)
     private String content;
 
+    @ColumnTransformer(write = "?::vector")
     @Column(columnDefinition = "vector(768)")
-    private PGvector embedding;
+    private String embedding;
 }

@@ -1,6 +1,7 @@
 package com.thecoderkushagra.entity;
 
-import com.pgvector.PGvector;
+
+import org.hibernate.annotations.ColumnTransformer;
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.FetchType;
@@ -39,6 +40,7 @@ public class SemanticCache {
     @Column(name = "response_text", columnDefinition = "TEXT", nullable = false)
     private String responseText;
 
-    @Column(name = "query_embedding", columnDefinition = "vector(768)")
-    private PGvector queryEmbedding;
+    @ColumnTransformer(write = "?::vector")
+    @Column(name = "query_embedding", columnDefinition = "vector(768)", nullable = false)
+    private String queryEmbedding;
 }

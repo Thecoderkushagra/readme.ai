@@ -2,22 +2,32 @@ package com.thecoderkushagra.service;
 
 import com.thecoderkushagra.entity.Repository;
 import com.thecoderkushagra.enums.RepositoryStatus;
+import com.thecoderkushagra.entity.SourceFile;
 import com.thecoderkushagra.entity.User;
 import com.thecoderkushagra.exception.ResourceNotFoundException;
 import com.thecoderkushagra.repository.RepositoryRepository;
+import com.thecoderkushagra.repository.SourceFileRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.io.IOException;
+import java.nio.charset.MalformedInputException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.nio.file.Path;
+import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.stream.Stream;
 import com.thecoderkushagra.dto.ParsedChunkDto;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.scheduling.annotation.Async;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 @Slf4j
 @Service
@@ -28,6 +38,7 @@ public class RepositoryService {
     private final GitService gitService;
     private final AstParsingService astParsingService;
     private final EmbeddingService embeddingService;
+    private final SourceFileRepository sourceFileRepository;
 
     @Autowired
     @Lazy
@@ -45,7 +56,12 @@ public class RepositoryService {
             log.info("Repository already exists globally (id: {}). Linking user: {}", repository.getId(), user.getEmail());
             repository.getUsers().add(user);
             Repository saved = repositoryRepository.save(repository);
-            self.processRepositoryAsync(saved);
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    self.processRepositoryAsync(saved.getId());
+                }
+            });
             return saved;
         }
 
@@ -59,7 +75,12 @@ public class RepositoryService {
         repository.getUsers().add(user);
 
         Repository saved = repositoryRepository.save(repository);
-        self.processRepositoryAsync(saved);
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                self.processRepositoryAsync(saved.getId());
+            }
+        });
         return saved;
     }
 
@@ -129,27 +150,79 @@ public class RepositoryService {
         return url;
     }
 
-    @Async
-    public void processRepositoryAsync(Repository repository) {
-        Path tempDirectory = null;
-        try {
-            repository.setStatus(RepositoryStatus.PARSING);
-            repositoryRepository.save(repository);
+    @Transactional
+    public void updateRepositoryStatus(UUID repositoryId, RepositoryStatus status) {
+        repositoryRepository.findById(repositoryId).ifPresent(repo -> {
+            repo.setStatus(status);
+            repositoryRepository.save(repo);
+        });
+    }
 
-            tempDirectory = gitService.cloneRepository(repository.getGitUrl());
+    @Async
+    public void processRepositoryAsync(UUID repositoryId) {
+        Path tempDirectory = null;
+        String gitUrl = "unknown";
+        try {
+            Repository repository = repositoryRepository.findById(repositoryId)
+                    .orElseThrow(() -> new ResourceNotFoundException("Repository not found"));
+            gitUrl = repository.getGitUrl();
+
+            // Phase 1: Clone
+            self.updateRepositoryStatus(repositoryId, RepositoryStatus.CLONING);
+            tempDirectory = gitService.cloneRepository(gitUrl);
+
+            // Phase 2: Parse AST
+            self.updateRepositoryStatus(repositoryId, RepositoryStatus.PARSING);
             List<ParsedChunkDto> chunks = astParsingService.parseRepository(tempDirectory);
+
+            // Phase 3: Vectorize
+            self.updateRepositoryStatus(repositoryId, RepositoryStatus.VECTORIZING);
             embeddingService.vectorizeAndSave(repository, chunks);
 
-            repository.setStatus(RepositoryStatus.COMPLETED);
-            repositoryRepository.save(repository);
+            // Phase 3.5: Read and save full source files for high-fidelity code viewer
+            List<SourceFile> sourceFiles = new ArrayList<>();
+            final Path finalTempDirectory = tempDirectory;
+            try (Stream<Path> paths = Files.walk(finalTempDirectory)) {
+                paths.filter(Files::isRegularFile)
+                     .filter(astParsingService::isValidFile)
+                     .forEach(path -> {
+                         try {
+                             String relativePath = finalTempDirectory.relativize(path).toString();
+                             String content = readFileContentSafe(path);
+                             sourceFiles.add(SourceFile.builder()
+                                     .repository(repository)
+                                     .filePath(relativePath)
+                                     .content(content)
+                                     .build());
+                         } catch (Exception e) {
+                             log.warn("Failed to read source file: {} - {}", path, e.getMessage());
+                         }
+                     });
+            }
+            if (!sourceFiles.isEmpty()) {
+                sourceFileRepository.saveAll(sourceFiles);
+            }
+
+            self.updateRepositoryStatus(repositoryId, RepositoryStatus.COMPLETED);
         } catch (Exception e) {
-            log.error("Failed to process repository {}: {}", repository.getGitUrl(), e.getMessage());
-            repository.setStatus(RepositoryStatus.FAILED);
-            repositoryRepository.save(repository);
+            log.error("Failed to process repository {}: {}", gitUrl, e.getMessage());
+            self.updateRepositoryStatus(repositoryId, RepositoryStatus.FAILED);
         } finally {
             if (tempDirectory != null) {
                 gitService.cleanupDirectory(tempDirectory);
             }
+        }
+    }
+
+    /**
+     * Reads file content with encoding fallback. Tries UTF-8 first,
+     * falls back to ISO-8859-1 on MalformedInputException.
+     */
+    private String readFileContentSafe(Path filePath) throws IOException {
+        try {
+            return Files.readString(filePath, StandardCharsets.UTF_8);
+        } catch (MalformedInputException e) {
+            return Files.readString(filePath, StandardCharsets.ISO_8859_1);
         }
     }
 }

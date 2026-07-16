@@ -38,6 +38,7 @@ public class RepositoryController {
         RepositoryResponse response = new RepositoryResponse(
                 repository.getId(),
                 repository.getName(),
+                repository.getGitUrl(),
                 repository.getStatus().name()
         );
         ApiResponse<RepositoryResponse> apiResponse = ApiResponse.<RepositoryResponse>builder()
@@ -52,7 +53,7 @@ public class RepositoryController {
     public ResponseEntity<ApiResponse<List<RepositoryResponse>>> getRepositories(@AuthenticationPrincipal User user) {
         List<Repository> repos = repositoryService.getRepositories(user);
         List<RepositoryResponse> response = repos.stream()
-                .map(r -> new RepositoryResponse(r.getId(), r.getName(), r.getStatus().name()))
+                .map(r -> new RepositoryResponse(r.getId(), r.getName(), r.getGitUrl(), r.getStatus().name()))
                 .toList();
         ApiResponse<List<RepositoryResponse>> apiResponse = ApiResponse.<List<RepositoryResponse>>builder()
                 .success(true)

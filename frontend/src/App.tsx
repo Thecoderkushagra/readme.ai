@@ -1,20 +1,11 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
 import { LoginPage } from './pages/LoginPage';
+import { ProtectedRoute } from './components/layout/ProtectedRoute';
+import { DashboardLayout } from './components/layout/DashboardLayout';
 import { DashboardPage } from './pages/DashboardPage';
-import { useAuthStore } from './store/useAuthStore';
+import { ChatPage } from './pages/ChatPage';
 
-// Protected Route Wrapper
-const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  return isAuthenticated ? <>{children}</> : <Navigate to="/login" replace />;
-};
-
-// Public Route Wrapper (Redirects to dashboard if logged in)
-const PublicRoute = ({ children }: { children: React.ReactNode }) => {
-  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
-  return isAuthenticated ? <Navigate to="/dashboard" replace /> : <>{children}</>;
-};
 
 export const App = () => {
   return (
@@ -32,31 +23,16 @@ export const App = () => {
         }}
       />
       <Routes>
-        {/* Public auth page */}
-        <Route
-          path="/login"
-          element={
-            <PublicRoute>
-              <LoginPage />
-            </PublicRoute>
-          }
-        />
-
-        {/* Protected Dashboard */}
-        <Route
-          path="/dashboard"
-          element={
-            <ProtectedRoute>
-              <DashboardPage />
-            </ProtectedRoute>
-          }
-        />
-
-        {/* Root path redirects to dashboard */}
-        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="/" element={<Navigate to="/login" replace />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/signup" element={<Navigate to="/login" replace />} />
         
-        {/* Catch-all redirect to dashboard */}
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        <Route element={<ProtectedRoute />}>
+          <Route element={<DashboardLayout />}>
+            <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/chat/:id" element={<ChatPage />} />
+          </Route>
+        </Route>
       </Routes>
     </BrowserRouter>
   );

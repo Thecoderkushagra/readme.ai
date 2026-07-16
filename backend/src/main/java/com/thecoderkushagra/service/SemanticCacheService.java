@@ -1,6 +1,6 @@
 package com.thecoderkushagra.service;
 
-import com.pgvector.PGvector;
+
 import com.thecoderkushagra.entity.Repository;
 import com.thecoderkushagra.entity.SemanticCache;
 import com.thecoderkushagra.repository.SemanticCacheRepository;
@@ -9,7 +9,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
-import java.sql.SQLException;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -43,12 +42,10 @@ public class SemanticCacheService {
                     .repository(repository)
                     .queryText(queryText)
                     .responseText(responseText)
-                    .queryEmbedding(new PGvector(vectorString))
+                    .queryEmbedding(vectorString)
                     .build();
                     
             semanticCacheRepository.save(cache);
-        } catch (SQLException e) {
-            log.error("Failed to parse PGvector from string: {}", e.getMessage());
         } catch (Exception e) {
             log.error("Failed to save semantic cache: {}", e.getMessage());
         }

@@ -24,10 +24,6 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
 
-  flyway:
-    enabled: true
-    baseline-on-migrate: true
-
   ai:
     google:
       genai:
@@ -38,6 +34,9 @@ spring:
           api-key: ${GEMINI_API_KEY:dummy_key_for_startup_purposes}
           project-id: ${GOOGLE_CLOUD_PROJECT:dummy_project_id_for_startup}
           location: ${GOOGLE_CLOUD_LOCATION:us-central1}
+          options:
+            model: text-embedding-004
+            output-dimensionality: 768
         chat:
           options:
             model: gemini-3.5-flash

@@ -6,6 +6,7 @@ import org.springframework.stereotype.Service;
 import org.treesitter.*;
 
 import java.io.IOException;
+import java.nio.charset.MalformedInputException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -35,7 +36,7 @@ public class AstParsingService {
         return allChunks;
     }
 
-    private boolean isValidFile(Path path) {
+    public boolean isValidFile(Path path) {
         String pathStr = path.toString().replace('\\', '/').toLowerCase();
 
         // Skip ignored directories
@@ -51,8 +52,12 @@ public class AstParsingService {
         }
 
         // Skip binary extensions
-        if (pathStr.endsWith(".png") || pathStr.endsWith(".jar") ||
-            pathStr.endsWith(".exe") || pathStr.endsWith(".pdf")) {
+        if (pathStr.endsWith(".png") || pathStr.endsWith(".jpg") || pathStr.endsWith(".jpeg") ||
+            pathStr.endsWith(".gif") || pathStr.endsWith(".ico") || pathStr.endsWith(".svg") ||
+            pathStr.endsWith(".jar") || pathStr.endsWith(".exe") || pathStr.endsWith(".pdf") ||
+            pathStr.endsWith(".zip") || pathStr.endsWith(".tar") || pathStr.endsWith(".gz") ||
+            pathStr.endsWith(".class") || pathStr.endsWith(".bin") || pathStr.endsWith(".jks") ||
+            pathStr.endsWith(".keystore") || pathStr.endsWith(".truststore")) {
             return false;
         }
         return true;
@@ -72,7 +77,11 @@ public class AstParsingService {
                     }
                     chunks.addAll(astChunks);
                 } catch (Exception e) {
-                    log.warn("Tree-sitter parsing failed for {}, falling back to Universal Chunks. Error: {}", relativePath, e.getMessage());
+                    if ("AST parsing returned 0 chunks".equals(e.getMessage())) {
+                        log.debug("Tree-sitter parsing returned 0 chunks for {}, falling back to Universal Chunks.", relativePath);
+                    } else {
+                        log.warn("Tree-sitter parsing failed for {}, falling back to Universal Chunks. Error: {}", relativePath, e.getMessage());
+                    }
                     chunks.addAll(createUniversalChunks(filePath, relativePath));
                 }
             } else {
@@ -99,20 +108,40 @@ public class AstParsingService {
         };
     }
 
-    private List<ParsedChunkDto> createUniversalChunks(Path filePath, String relativePath) throws IOException {
-        List<ParsedChunkDto> chunks = new ArrayList<>();
-        List<String> lines = Files.readAllLines(filePath);
+    /**
+     * Reads a file's content as a String, trying UTF-8 first. If the file
+     * contains byte sequences invalid in UTF-8, falls back to ISO-8859-1
+     * (which maps every byte 0x00-0xFF losslessly to a char and never throws).
+     */
+    private String readFileContent(Path filePath) throws IOException {
+        try {
+            return Files.readString(filePath, StandardCharsets.UTF_8);
+        } catch (MalformedInputException e) {
+            // Non-UTF-8 file (e.g. GBK, Latin-1). Fall back to ISO-8859-1.
+            return Files.readString(filePath, StandardCharsets.ISO_8859_1);
+        }
+    }
 
+    private List<ParsedChunkDto> createUniversalChunks(Path filePath, String relativePath) {
+        List<ParsedChunkDto> chunks = new ArrayList<>();
+        String content;
+        try {
+            content = readFileContent(filePath);
+        } catch (IOException e) {
+            log.warn("Failed to read file {}: {}", relativePath, e.getMessage());
+            return chunks;
+        }
+
+        String[] lines = content.split("\n", -1);
         int chunkSize = 100;
         int overlap = 20;
         int step = chunkSize - overlap;
 
-        for (int i = 0; i < lines.size(); i += step) {
-            int end = Math.min(i + chunkSize, lines.size());
-            List<String> chunkLines = lines.subList(i, end);
-            String content = String.join("\n", chunkLines);
-            chunks.add(new ParsedChunkDto(relativePath, "TextChunk", content));
-            if (end == lines.size()) {
+        for (int i = 0; i < lines.length; i += step) {
+            int end = Math.min(i + chunkSize, lines.length);
+            String chunkContent = String.join("\n", java.util.Arrays.copyOfRange(lines, i, end));
+            chunks.add(new ParsedChunkDto(relativePath, "TextChunk", chunkContent));
+            if (end == lines.length) {
                 break;
             }
         }
@@ -120,7 +149,7 @@ public class AstParsingService {
     }
 
     private List<ParsedChunkDto> createAstChunks(Path filePath, String relativePath, String extension) throws IOException {
-        String content = Files.readString(filePath);
+        String content = readFileContent(filePath);
         TSLanguage language = getLanguageForExtension(extension);
         Set<String> targetNodes = getTargetNodesForExtension(extension);
 
@@ -153,7 +182,7 @@ public class AstParsingService {
 
     private Set<String> getTargetNodesForExtension(String extension) {
         return switch (extension) {
-            case "java" -> Set.of("class_declaration", "method_declaration");
+            case "java" -> Set.of("class_declaration", "method_declaration", "interface_declaration", "enum_declaration", "annotation_type_declaration", "record_declaration");
             case "py" -> Set.of("class_definition", "function_definition");
             case "js", "ts", "tsx", "jsx" -> Set.of("class_declaration", "function_declaration", "method_definition");
             case "cpp", "cc", "h" -> Set.of("class_specifier", "function_definition");

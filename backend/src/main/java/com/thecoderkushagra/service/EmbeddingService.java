@@ -1,6 +1,5 @@
 package com.thecoderkushagra.service;
 
-import com.pgvector.PGvector;
 import com.thecoderkushagra.dto.ParsedChunkDto;
 import com.thecoderkushagra.entity.AstChunk;
 import com.thecoderkushagra.entity.Repository;
@@ -11,6 +10,7 @@ import org.springframework.ai.embedding.EmbeddingModel;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 @Slf4j
@@ -26,6 +26,7 @@ public class EmbeddingService {
         
         int batchSize = 50;
         int totalProcessed = 0;
+        int totalSkipped = 0;
         
         for (int i = 0; i < chunks.size(); i += batchSize) {
             int end = Math.min(i + batchSize, chunks.size());
@@ -37,25 +38,41 @@ public class EmbeddingService {
             for (ParsedChunkDto dto : batch) {
                 try {
                     float[] vector = embeddingModel.embed(dto.content());
+                    if (entities.isEmpty()) {
+                        log.info("Vector length is: {}", vector.length);
+                    }
+                    String vectorString = Arrays.toString(vector);
                     AstChunk chunk = AstChunk.builder()
                             .repository(repository)
                             .filePath(dto.filePath())
                             .nodeType(dto.nodeType())
                             .content(dto.content())
-                            .embedding(new PGvector(vector))
+                            .embedding(vectorString)
                             .build();
                     entities.add(chunk);
                 } catch (Exception e) {
-                    log.error("Failed to generate embedding for file: {}. Error: {}", dto.filePath(), e.getMessage());
-                    // Decide if we should fail the entire batch/repository or just skip the chunk.
-                    // Usually we throw or skip. We will throw to let the orchestrator handle it.
-                    throw new RuntimeException("Embedding failed for chunk: " + dto.filePath(), e);
+                    totalSkipped++;
+                    String errorMsg = e.getMessage() != null ? e.getMessage() : "";
+                    if (errorMsg.contains("429") || errorMsg.contains("quota") || errorMsg.contains("rate")) {
+                        log.warn("Rate limited while embedding chunk from {}. Pausing 5s. Skipped so far: {}", dto.filePath(), totalSkipped);
+                        try {
+                            Thread.sleep(5000);
+                        } catch (InterruptedException ie) {
+                            Thread.currentThread().interrupt();
+                            log.error("Interrupted during rate-limit backoff");
+                            break;
+                        }
+                    } else {
+                        log.warn("Failed to embed chunk from {}: {}. Skipping.", dto.filePath(), errorMsg);
+                    }
                 }
             }
-            astChunkRepository.saveAll(entities);
-            totalProcessed += entities.size();
+            if (!entities.isEmpty()) {
+                astChunkRepository.saveAll(entities);
+                totalProcessed += entities.size();
+            }
         }
         
-        log.info("Successfully vectorized and saved {} chunks for repository {}", totalProcessed, repository.getName());
+        log.info("Vectorization complete for repository {}. Processed: {}, Skipped: {}", repository.getName(), totalProcessed, totalSkipped);
     }
 }
