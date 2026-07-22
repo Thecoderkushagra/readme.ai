@@ -51,7 +51,7 @@ public class ChatService {
         guardrailService.validateQuery(request.query());
 
         // Step 2: Single Embedding Generation
-        float[] vector = embeddingModel.embed(request.query());
+        float[] vector = embeddingModel.embed("search_query: " + request.query());
         StringBuilder sb = new StringBuilder("[");
         for (int i = 0; i < vector.length; i++) {
             sb.append(vector[i]);

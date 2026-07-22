@@ -219,10 +219,12 @@ public class RepositoryService {
      * falls back to ISO-8859-1 on MalformedInputException.
      */
     private String readFileContentSafe(Path filePath) throws IOException {
+        String content;
         try {
-            return Files.readString(filePath, StandardCharsets.UTF_8);
+            content = Files.readString(filePath, StandardCharsets.UTF_8);
         } catch (MalformedInputException e) {
-            return Files.readString(filePath, StandardCharsets.ISO_8859_1);
+            content = Files.readString(filePath, StandardCharsets.ISO_8859_1);
         }
+        return content.replace("\0", "");
     }
 }

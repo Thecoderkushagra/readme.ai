@@ -20,9 +20,9 @@ public class JwtService {
     private final long refreshExpiration;
 
     public JwtService(
-            @Value("${app.security.jwt.secret:readmeAiSecretKeyMustBeVeryLongToMeetHmacSha256Requirement}") String secret,
-            @Value("${app.security.jwt.access-expiration:900000}") long accessExpiration,
-            @Value("${app.security.jwt.refresh-expiration:604800000}") long refreshExpiration) {
+            @Value("${jwt.secret}") String secret,
+            @Value("${jwt.access}") long accessExpiration,
+            @Value("${jwt.refresh}") long refreshExpiration) {
         this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
         this.accessExpiration = accessExpiration;
         this.refreshExpiration = refreshExpiration;

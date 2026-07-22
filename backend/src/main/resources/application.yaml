@@ -9,6 +9,10 @@ spring:
     virtual:
       enabled: true
 
+  sql:
+    init:
+      mode: always
+
   datasource:
     url: ${DB_URL}
     username: ${DB_USER}
@@ -17,26 +21,30 @@ spring:
 
   jpa:
     hibernate:
-      ddl-auto: validate
+      ddl-auto: update
+
     show-sql: false
+
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
         format_sql: true
 
   ai:
+    ollama:
+      base-url: http://localhost:11434
+      chat:
+        enabled: false
+      embedding:
+        options:
+          model: nomic-embed-text
+
     google:
       genai:
         api-key: ${GEMINI_API_KEY:dummy_key_for_startup_purposes}
         project-id: ${GOOGLE_CLOUD_PROJECT:dummy_project_id_for_startup}
         location: ${GOOGLE_CLOUD_LOCATION:us-central1}
-        embedding:
-          api-key: ${GEMINI_API_KEY:dummy_key_for_startup_purposes}
-          project-id: ${GOOGLE_CLOUD_PROJECT:dummy_project_id_for_startup}
-          location: ${GOOGLE_CLOUD_LOCATION:us-central1}
-          options:
-            model: text-embedding-004
-            output-dimensionality: 768
+
         chat:
           options:
             model: gemini-3.5-flash
@@ -47,3 +55,8 @@ spring:
         dimension: 768
         distance-type: COSINE_DISTANCE
         index-type: HNSW
+
+jwt:
+  secret: ${JWT_SECRET}
+  access: ${JWT_ACCESS_EXPIRATION}
+  refresh: ${JWT_REFRESH_EXPIRATION}

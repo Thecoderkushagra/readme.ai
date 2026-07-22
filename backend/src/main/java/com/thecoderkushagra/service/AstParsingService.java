@@ -114,12 +114,15 @@ public class AstParsingService {
      * (which maps every byte 0x00-0xFF losslessly to a char and never throws).
      */
     private String readFileContent(Path filePath) throws IOException {
+        String content;
         try {
-            return Files.readString(filePath, StandardCharsets.UTF_8);
+            content = Files.readString(filePath, StandardCharsets.UTF_8);
         } catch (MalformedInputException e) {
             // Non-UTF-8 file (e.g. GBK, Latin-1). Fall back to ISO-8859-1.
-            return Files.readString(filePath, StandardCharsets.ISO_8859_1);
+            content = Files.readString(filePath, StandardCharsets.ISO_8859_1);
         }
+        // PostgreSQL completely forbids \0 bytes in TEXT columns. Strip them vertically here.
+        return content.replace("\0", "");
     }
 
     private List<ParsedChunkDto> createUniversalChunks(Path filePath, String relativePath) {

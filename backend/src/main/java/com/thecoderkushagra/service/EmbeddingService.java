@@ -37,16 +37,17 @@ public class EmbeddingService {
             List<AstChunk> entities = new ArrayList<>();
             for (ParsedChunkDto dto : batch) {
                 try {
-                    float[] vector = embeddingModel.embed(dto.content());
+                    float[] vector = embeddingModel.embed("search_document: " + dto.content());
                     if (entities.isEmpty()) {
                         log.info("Vector length is: {}", vector.length);
                     }
                     String vectorString = Arrays.toString(vector);
+                    String cleanContent = dto.content().replace("\0", "");
                     AstChunk chunk = AstChunk.builder()
                             .repository(repository)
                             .filePath(dto.filePath())
                             .nodeType(dto.nodeType())
-                            .content(dto.content())
+                            .content(cleanContent)
                             .embedding(vectorString)
                             .build();
                     entities.add(chunk);

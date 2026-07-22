@@ -7,7 +7,10 @@ import org.springframework.boot.test.context.SpringBootTest;
     "DB_URL=jdbc:postgresql://localhost:5432/dummy",
     "DB_USER=dummy",
     "DB_PASS=dummy",
-    "spring.jpa.hibernate.ddl-auto=none"
+    "spring.jpa.hibernate.ddl-auto=none",
+    "JWT_SECRET=dummysecretkeythatisatleast32byteslongforhs256",
+    "JWT_ACCESS_EXPIRATION=3600000",
+    "JWT_REFRESH_EXPIRATION=86400000"
 })
 class ReadmeAiApplicationTests {
 
